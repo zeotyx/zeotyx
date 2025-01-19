@@ -1,0 +1,410 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace ConsoleApp16
+{
+    internal class Program
+    {
+        //main character stats
+        static string Gender = "unchosed";
+        static string sexuality = "unchosed";
+        
+        static int Age = 0;
+        static string firstName = "none";
+        static string lastname = "none";
+        static double Level = 0;
+        static int happiness = 100;
+        static int health = 0;
+        static int Networth = 0;
+        static int cash = 0;
+        static int bankacc = 0;
+        //----------------------------------------------//
+
+
+
+        static int happythingsdone = 0;
+        static int movingdone = 0;
+        static string[] lastnames = { "James", "Fast", "Kuprova" };
+        
+
+
+
+        //Moms stat variables
+        static string Mom = "none";
+        static string[] nameM = {"Emily", "Jessica", "Laura", "Paula", "Sofia" };
+        static int MomHappiness = 100;
+
+        //---------------------------------------------------------------------//
+
+        //dad stats variables
+        static string Dad = "none";
+        static string[] nameD = { "James", "Jamal", "Peter", "Adam", "Tony", "Edvard", "Paul", "Max", "Maty" };
+        static int DadHappiness = 100;
+
+        //---------------------------------------------------------------------//
+
+        static int startPUBB = 9;
+        static int startPUBG = 8;
+        static int PrePUBG = 6;
+        static int PrePUBB = 5;
+        static int endPUB = 17;
+
+        static bool alive = true;
+        static bool depressed = false;
+        static void Main(string[] args)
+        {
+            
+            bool choseG = false;
+            string input = "";
+            bool namechossen = false;
+            while (alive = true)
+            {
+                while (choseG == false)
+                {
+                    chosingGend();
+                    input = Console.ReadLine();
+                    Random random = new Random();
+                    if (input == "1")
+                    {
+                        Level = random.Next(50, 200);
+                        health = random.Next(80, 100);
+                        Level = Level / 100;
+                        Console.Clear();
+                        Console.WriteLine($"U chossed Girl  " +
+                            $" and u go {Level}");
+                        Gender = "girl";
+                        sexuality = "straight";
+                        choseG = true;
+
+                        Thread.Sleep(600);
+                        while (namechossen == false)
+                        {
+                            Console.Clear();
+                            Console.WriteLine("\nWhat name would u like to have");
+                            firstName = Console.ReadLine();
+                            if (firstName.Length < 3)
+                            {
+                                Console.WriteLine("such a small name please put longer one");
+                            }
+                            else
+                            {
+                                Console.Clear();
+
+                                lastname = lastnames[random.Next(0, lastnames.Length)];
+                                Mom = $"{nameM[random.Next(0, nameM.Length)]} {lastname}";
+                                Dad = $"{nameD[random.Next(0, nameD.Length)]} {lastname}";
+                                Console.WriteLine($"Your Full Name is {firstName} {lastname}");
+                                namechossen = true;
+                                Thread.Sleep(800);
+                            }
+                        }
+
+                    }
+                    else if (input == "2")
+                    {
+                        Console.Clear();
+                        Level = random.Next(50, 200);
+                        health = random.Next(80, 100);
+                        Level = Level / 100;
+                        Console.WriteLine($"U chossed boy  " +
+                            $" and u go {Level}");
+                        
+                        Gender = "boy";
+                        sexuality = "straight";
+                        choseG = true;
+
+                        Thread.Sleep(600);
+                        while (namechossen == false)
+                        {
+                            Console.Clear();
+                            Console.WriteLine("\nWhat name would u like to have");
+                            firstName = Console.ReadLine();
+                            if (firstName.Length < 3)
+                            {
+                                Console.WriteLine("such a small name please put longer one");
+                            }
+                            else
+                            {
+                                Console.Clear();
+
+                                lastname = lastnames[random.Next(0, lastnames.Length)];
+                                Mom = $"{nameM[random.Next(0, nameM.Length)]} {lastname}";
+                                Dad = $"{nameD[random.Next(0, nameD.Length)]} {lastname}";
+                                Console.WriteLine($"Your Full Name is {firstName} {lastname}");
+                                namechossen = true;
+                                Thread.Sleep(800);
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("wrong option");
+                        Thread.Sleep(100);
+
+                    }
+                }
+                Console.Clear();
+
+                MainMenu();
+                input = Console.ReadLine();
+                if (input == "1")
+                {
+                    Console.Clear();
+                    Random Word = new Random();
+                    string[] words = { "CAR", "hello", "HI", "ANIMAL", "SOCKS", "MOM", "DAD" };
+                    
+                    Console.Clear();
+                    Console.WriteLine($"u heard ur parents saying {words[Word.Next(0, words.Length)]}");
+                    Thread.Sleep(100);
+                    Console.ReadKey();
+                    
+                }
+                else if (input == "2")
+                {
+                    Console.Clear();
+                    Age += 1;
+                    Random random = new Random();
+                    Console.WriteLine($@"U JUST AGED 1year 
+                    U ARE NOW {Age} years old
+"); 
+                    if (movingdone < 1)
+                    {
+                        
+                        int Hdec = random.Next(1, 5);
+                        health -= Hdec;
+                        Console.WriteLine($@"
+                              health decreased by {Hdec}  ");
+                    }
+                    if(happythingsdone > 0)
+                    {
+                        int happythingsdone = 0;
+                        if (happiness <100)
+                        {
+
+                        }
+                        else
+                        {
+                            int Hdec = random.Next(1, 15);
+                            happiness += Hdec;
+                            Console.WriteLine($@"
+
+
+                               happines level increased by {Hdec} for doing happy activities 
+
+                             
+                              ||                            ||
+                              ||                            ||
+                              ||                            ||
+
+                               |                            |
+                                |                          |
+                                 |________________________|
+press any key to continu...");
+                        }
+                        
+                    }
+                    else
+                    {
+                        int happythingsdone = 0;
+                        int Hdec = random.Next(1, 5);
+                        happiness -= Hdec;
+                        Console.WriteLine($@"
+                              Happines decreased by {Hdec} for not doing happy activities 
+
+                             
+                              ||                            ||
+                              ||                            ||
+                              ||                            ||
+
+                               |----------------------------|
+                              |                              |
+                             |                                |
+press any key to continu...");
+
+                    }
+                    Console.ReadKey();
+
+                }
+                else if (input == "3")
+                {
+                    Console.Clear();
+                    status();
+                    Thread.Sleep(100);
+                    Console.ReadKey();
+                }
+                else if (input == "4")
+                {
+                    Family();
+
+                }
+            }
+            
+            
+            
+
+        }
+
+        static void Family()
+        {
+            Console.Clear();
+            Console.WriteLine($@"
+                                        Chose to interact
+                                        
+                                        1>{Mom} (Mom)
+                                        2>{Dad} (Dad)
+    
+                                        ");
+            string input = Console.ReadLine();
+            if (input == "1")
+            {
+                if (Gender == "boy")
+                {
+                    if (Age >= PrePUBB)
+                    {
+                        Console.Clear();
+                        Console.WriteLine($@"
+                                                  Your     Mom
+                                                     {Mom}
+                                 Moms happiness:{MomHappiness}");
+                    }
+
+                }
+                else
+                {
+                    if (Age >= PrePUBG)
+                    {
+                        Console.Clear();
+                        Console.WriteLine($@"
+                                                  Your     Mom
+                                                     {Mom}
+                                 Moms happiness:{MomHappiness}");
+                    }
+                }
+                
+            }
+            else if (input == "2")
+            {
+                
+                    if (Age < PrePUBB)
+                    {
+                        Console.Clear();
+                        Console.WriteLine($@"
+                                                  Your     Dad
+                                                     {Dad}
+                                Dads happiness:{DadHappiness}
+
+                                1>Talk with him
+                                2>Play with him
+
+                                ");
+                    input = Console.ReadLine();
+                        if (input == "1")
+                        {
+                        Console.Clear();
+                        Console.WriteLine($@"
+                                                            U are currently talking with ur dad
+                                                     
+                                                                                         ");
+                        }
+                        else if (input == "2")
+                        {
+                        Console.Clear();
+                        Random game = new Random();
+                        string[] games = { "fotball ", "rugby", "American Football" };
+                        string gameCur = games[game.Next(0, games.Length)];
+                        Console.WriteLine($@"   U are currently playing {gameCur} with ur dad
+                                                      ");
+                        Console.ReadLine();
+                        }
+                    }
+                        
+                
+                
+                
+            }
+
+        }
+        static void chosingGend()
+        {
+            Console.Clear();
+            Console.WriteLine(@"            Welcome to the LFG (Life Game)
+
+            chose ur starting gender
+    1>girl
+    2>boy
+
+");
+        }     
+        static void status()
+        {
+            Console.WriteLine($@"  
+                                Full Name: {firstName} {lastname}
+
+                                Mom: {Mom}
+                                Dad: {Dad}
+
+                                Gender: {Gender}
+                                sexuality: {sexuality}
+                                Age: {Age}
+                                Level: {Level}
+                                happiness: {happiness}
+                                Health: {health}");
+            
+
+        }
+        static void MainMenu()
+        {
+            if (Gender == "boy")
+            {
+                if (Age < PrePUBB)
+                {
+                    Console.WriteLine($@"       Hi {firstName}                      U are {Age} Years old
+
+                                         all your money is {cash + bankacc}
+
+                                     Here is menu of things u can do         
+                                  ___________________________________________
+                                  1>Learn new words
+                                  2>Age 1year
+                                  3>Check ur stats
+                                  4>Family
+                                  5>Fun
+                                  6>Move");
+
+                }
+                else if (Age == PrePUBB)
+                {
+
+                }
+            }
+            else if (Gender == "girl")
+            {
+                if (Age < PrePUBG)
+                {
+                    Console.WriteLine($@"       Hi {firstName}                      U are {Age} Years old 
+                                         all your money is {cash + bankacc}
+
+                                     Here is menu of things u can do         
+                                  ___________________________________________
+                                  1>learn new words
+                                  2>Age 1year
+                                  3>Check ur stats
+                                  4>ur family
+                                  5>Fun");
+
+                }
+                else if (Age == PrePUBG)
+                {
+
+                }
+            }
+        }
+    }
+   
+}
