@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Speed Graph</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #graph {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <h1> ISS Speed Over Time</h1>
+    <img id="graph" src="{{ url_for('get_speed_graph') }}" alt="ISS Speed Graph">
+    <script>
+        setInterval(function() {
+            document.getElementById('graph').src = "{{ url_for('get_speed_graph') }}?" + new Date().getTime();
+        }, 10000); 
+    </script>
+</body>
+</html>

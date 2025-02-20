@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Speed Detection</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+        .content {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 80%;
+            max-width: 900px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            color: #fff;
+            background: #ffdd57;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #e6c44f;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>ISS Speed Detection</h1>
+        <a href="{{ url_for('iss_speed') }}" class="btn">Start Speed Detection</a>
+        <a href="{{ url_for('iss_speed_graph') }}" class="btn">View Speed Graph</a>
+    </div>
+</body>
+</html>
