@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @Axlicek
 - 👀 I’m interested in C#, machine learning tool, kali linux, ethical hacking
-- 🌱 I’m currently learning C#
+- 🌱 I’m currently learning C#, python, batch, lua, game development, machine learning
 - 📫 How to reach me ig:@tvuj_novy_negricek
 - 😄 Pronouns: he/his
 - ⚡ Fun fact: silly
