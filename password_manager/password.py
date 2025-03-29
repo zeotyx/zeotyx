@@ -48,23 +48,23 @@ def load_passwords():
     decrypted_data = encryption_key.decrypt(encrypted_data).decode()
     return json.loads(decrypted_data)
 
-# --------- Fade Transition ---------
+
 def smooth_transition(new_frame_func):
-    # Fade out the current frame
+    
     for widget in app.winfo_children():
         fade_out(widget)
     app.after(500, new_frame_func)
 
 def fade_out(widget, step=0):
-    # Fade out effect (opacity simulation by hiding the widget)
+    
     if step < 10:
         widget.place_forget()
         app.after(50, lambda: fade_out(widget, step + 1))
     else:
-        widget.place_forget()  # Fully hidden
+        widget.place_forget()  
 
 def fade_in(widget, step=0):
-    # Fade in effect (opacity simulation by showing the widget)
+    
     if step < 10:
         widget.place(relx=0.5, rely=0.5, anchor="center")
         app.after(50, lambda: fade_in(widget, step + 1))
@@ -117,11 +117,11 @@ def saved_passwords_screen():
 
     ctk.CTkLabel(frame, text="Saved Passwords", font=("Arial", 22, "bold")).pack(pady=15)
 
-    # Scrollable frame for saved passwords
+    
     scrollable_frame = ctk.CTkScrollableFrame(frame)
     scrollable_frame.pack(pady=10, padx=20, fill="both", expand=True)
 
-    checkboxes = []  # To store checkbox references for deletion
+    checkboxes = [] 
 
     for entry in passwords:
         site_label = ctk.CTkLabel(scrollable_frame, text=f"{entry['site']}: {entry['password']}")
@@ -138,7 +138,7 @@ def saved_passwords_screen():
     back_btn.pack(pady=20)
 
 def confirm_delete(checkboxes):
-    # Collect selected sites for deletion
+   
     selected_sites = [entry for cb, entry in checkboxes if cb.get()]
     
     if not selected_sites:
