@@ -1,4 +1,4 @@
-- 👋 Hi, I’m @Axlicek
+- 👋 Hi, I’m @Axlicek(Tony)
 - 👀 I’m interested in C#, machine learning tool, kali linux, ethical hacking
 - 🌱 I’m currently learning C#, python, batch, lua, game development, machine learning
 - 📫 How to reach me ig:@tvuj_novy_negricek
