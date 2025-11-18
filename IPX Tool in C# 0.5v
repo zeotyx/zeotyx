@@ -20,7 +20,7 @@ namespace ipx_tool
 {
     internal class Program
     {
-       
+
 
         static async Task<bool> IsPortOpen(string host, int port, int timeout = 1000)
         {
@@ -59,7 +59,11 @@ namespace ipx_tool
 
         static string testLGPage = "https://localhost:7291/Account/Login";
         static string projectpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IPXlogs");
+        static string apiKey = "d536228f24a1fe";
 
+        static string ApiKeyGoogle = "AIzaSyBl-7STP45strbHqu8yAg4zGkI3yD-jLH4";
+
+        static string EngineId = "41335839fa2864e73";
 
         static string Ipslogpath = Path.Combine(projectpath, "IP infos.txt");
         static string ipslog = "";
@@ -111,7 +115,7 @@ namespace ipx_tool
             Thread.Sleep(700);
             displaymain();
 
-            while(true)
+            while (true)
             {
                 var selected_option = Console.ReadLine();
 
@@ -134,211 +138,25 @@ namespace ipx_tool
 │ 2) Person                                   │
 │ 3) Metadata Image Extraction                │
 └─────────────────────────────────────────────┘");
-                    string volba = Console.ReadLine();
-                    if (volba == "1")
+                    string option = Console.ReadLine();
+                    switch (option)
                     {
-                        Console.Clear();
-                        Console.WriteLine("IP:");
-                        Console.ResetColor();
-                        string targetip = Console.ReadLine();
-                        if (Regex.IsMatch(targetip, ipv4) || Regex.IsMatch(targetip, ipv6))
-                        {
-                            string url = $"http://ipinfo.io/{targetip}/json?token={apiKey}";
-
-                            using (HttpClient client = new HttpClient())
-                            {
-                                try
-                                {
-
-                                    string response = await client.GetStringAsync(url);
-                                    var ipData = JsonConvert.DeserializeObject<IpInfo>(response);
-
-                                    string mapurl = $"https://www.openstreetmap.org/?mlat={ipData.Loc.Split(',')[0]}&mlon={ipData.Loc.Split(',')[1]}#map=15/{ipData.Loc.Split(',')[0]}/{ipData.Loc.Split(',')[1]}";
-
-                                    Console.Clear();
-                                    ipslog = $@"
-IP: {ipData.Ip}
-
-{await CheckIfBot(targetip)}
-
-Location: {ipData.City}, {ipData.Region}, {ipData.Country}
-
-Map: {mapurl}
-
-Organization: {ipData.Org}";
-                                    Console.WriteLine(ipslog);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine("shit a error happaned: " + ex.Message);
-                                }
-                            }
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine("\nPress any key to go back or press s to save it");
-                            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                            if (keyInfo.Key == ConsoleKey.S)
-                            {
-                                savelog(ipslog, Ipslogpath, true);
-                                Thread.Sleep(500);
-                                displaymain();
-                            }
-                            else
-                            {
-                                displaymain();
-                            }
-
-
-                        }
-                        else
-                        {
-                            Console.WriteLine("Invalid format"); Thread.Sleep(1000);
-                            displaymain();
-                        }
-                    }
-                    else if (volba == "2")
-                    {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Console.Clear();
-                        Console.WriteLine("enter pattern like this: name lastname city");
-                        Console.ResetColor();
-                        string query = Console.ReadLine();
-                        if (Regex.IsMatch(query, person))
-                        {
-                            Console.Clear();
-                            string apiUrl = $"https://www.googleapis.com/customsearch/v1?q={query}&key={ApiKeyGoogle}&cx={EngineId}";
-
-                            using (HttpClient client = new HttpClient())
-                            {
-
-                                HttpResponseMessage response = await client.GetAsync(apiUrl);
-
-
-                                if (response.IsSuccessStatusCode)
-                                {
-
-                                    string jsonResponse = await response.Content.ReadAsStringAsync();
-
-
-                                    JObject json = JObject.Parse(jsonResponse);
-
-
-                                    var items = json["items"];
-
-
-                                    foreach (var item in items)
-                                    {
-
-
-                                        string title = item["title"].ToString();
-                                        string link = item["link"].ToString();
-                                        string snippet = item["snippet"].ToString();
-
-                                        personlog = $@"/---------------------------------------------------\
-Who: {query}
-Title: {title}
-Link: {link}
-Description: {snippet}
----------------------------------------------------";
-                                        Console.WriteLine(personlog);
-                                    }
-                                }
-                                else
-                                {
-
-                                    Console.WriteLine("Failed to fetch data.");
-                                    Thread.Sleep(500);
-                                }
-                                Console.ForegroundColor = ConsoleColor.Green;
-                                Console.WriteLine("\nPress any key to go back or press s to save it");
-                                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                                if (keyInfo.Key == ConsoleKey.S)
-                                {
-                                    savelog($"who: {query}", personlogpath, false);
-                                    string jsonResponse = await response.Content.ReadAsStringAsync();
-
-
-                                    JObject json = JObject.Parse(jsonResponse);
-
-                                    var items = json["items"];
-                                    foreach (var item in items)
-                                    {
-
-
-                                        string title = item["title"].ToString();
-                                        string link = item["link"].ToString();
-                                        string snippet = item["snippet"].ToString();
-
-                                        personlog = $@"/---------------------------------------------------\
-Who: {query}
-Title: {title}
-Link: {link}
-Description: {snippet}
----------------------------------------------------";
-                                        savelog(personlog, personlogpath, false);
-                                    }
-                                    Thread.Sleep(4000);
-                                    displaymain();
-                                }
-                                else
-                                {
-                                    displaymain();
-                                }
-
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("wrong pattern try again");
-                            Thread.Sleep(500);
-                            displaymain();
-                        }
-                    }
-                    else if (volba == "3")
-                    {
-                        Console.Clear();
-                        Console.WriteLine("Image Path:");
-                        string filePath = Console.ReadLine();
-
-                        if (!File.Exists(filePath))
-                        {
-                            Console.WriteLine("File does not exist. Please check the path.");
-                            Thread.Sleep(500);
-                            displaymain();
+                        case "1":
+                            await LookupIP();
+                            break;
+                        case "2":
+                            await SearchPerson();
+                            break;
+                        case "3":
+                            ExtractImageMetadata();
+                            break;
+                        default:
+                            Console.WriteLine("Invalid option.");
+                            await Task.Delay(500);
                             
-                        }
-
-                        try
-                        {
-                            
-                            var directories = ImageMetadataReader.ReadMetadata(filePath);
-
-                            foreach (MetadataExtractor.Directory directory in directories)
-                            {
-                                foreach (var tag in directory.Tags)
-                                {
-                                    Console.WriteLine($"{directory.Name} - {tag.Name}: {tag.Description}");
-                                }
-                            }
-                                  
-                            Console.WriteLine("\nMetadata extraction complete.");
-                            Console.WriteLine("press any key to exit");
-                            Console.ReadKey();
                             displaymain();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error extracting metadata: {ex.Message}");
-
-                        }
+                            break;
                     }
-                    else
-                    {
-                        Console.Clear();
-                        Console.WriteLine("wrong option");
-                        Thread.Sleep(300);
-                        displaymain();
-
-                     }
                 }
                 if (selected_option == "2")
                 {
@@ -479,7 +297,7 @@ Description: {snippet}
                         }
 
                     }
-                    
+
 
                     if (volba == "2")
                     {
@@ -681,7 +499,7 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
                                 }
 
                             }
-                            
+
                             else
                             {
                                 Console.WriteLine("\nThis is not a valid port");
@@ -700,7 +518,7 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
                     }
                     else if (volba == "2")
                     {
-                       Console.WriteLine("idk how to make it for now");
+                        Console.WriteLine("idk how to make it for now");
                         Thread.Sleep(1000);
                         displaymain();
                     }
@@ -854,7 +672,7 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
                         displaymain();
 
                     }
-                }    
+                }
                 else if (selected_option == "6")
                 {
 
@@ -986,12 +804,12 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
                         displaymain();
                     }
                 }
-             else
-             {
+                else
+                {
                     Console.WriteLine("Wrong option");
                     Thread.Sleep(500);
                     displaymain();
-             }
+                }
             }
         }
 
@@ -1236,7 +1054,7 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
                     Console.WriteLine($"Download complete. Installer saved to: {installerPath}");
                     return true;
 
-                    
+
                 }
             }
             catch (Exception ex)
@@ -1312,6 +1130,164 @@ Username>{username} Password>{savedpass}", Bruceforcelog, false);
             {
                 Console.WriteLine($"Error launching installer or VPN: {ex.Message}");
             }
+        }
+        private static async Task LookupIP()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter IP:");
+            string targetip = Console.ReadLine();
+
+            if (!Regex.IsMatch(targetip, ipv4) && !Regex.IsMatch(targetip, ipv6))
+            {
+                Console.WriteLine("Invalid IP format.");
+                await Task.Delay(1000);
+                displaymain();
+                return;
+            }
+
+            string url = $"http://ipinfo.io/{targetip}/json?token={apiKey}";
+            using var client = new HttpClient();
+            try
+            {
+                string response = await client.GetStringAsync(url);
+                var ipData = JsonConvert.DeserializeObject<IpInfo>(response);
+
+                string mapurl = $"https://www.openstreetmap.org/?mlat={ipData.Loc.Split(',')[0]}&mlon={ipData.Loc.Split(',')[1]}#map=15/{ipData.Loc.Split(',')[0]}/{ipData.Loc.Split(',')[1]}";
+
+                string log = $@"
+IP: {ipData.Ip}
+Location: {ipData.City}, {ipData.Region}, {ipData.Country}
+Map: {mapurl}
+Organization: {ipData.Org}";
+
+                Console.Clear();
+                Console.WriteLine(log);
+
+                await SaveOption(log, Ipslogpath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                await Task.Delay(1000);
+            }
+
+            
+            displaymain();
+        }
+
+        private static async Task SearchPerson()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter pattern (name lastname city):");
+            string query = Console.ReadLine();
+
+            if (!Regex.IsMatch(query, person))
+            {
+                Console.WriteLine("Invalid pattern.");
+                await Task.Delay(500);
+                
+                displaymain();
+                return;
+            }
+
+            string apiUrl = $"https://www.googleapis.com/customsearch/v1?q={query}&key={ApiKeyGoogle}&cx={EngineId}";
+            using var client = new HttpClient();
+            try
+            {
+                var response = await client.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Failed to fetch data.");
+                    await Task.Delay(500);
+                     displaymain();
+                    return;
+                }
+
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                JObject json = JObject.Parse(jsonResponse);
+                var items = json["items"];
+
+                if (items == null || !items.HasValues)
+                {
+                    Console.WriteLine("No results found.");
+                    await Task.Delay(1000);
+                    displaymain();
+                    return;
+                }
+
+                foreach (var item in items)
+                {
+                    string title = item["title"]?.ToString() ?? "";
+                    string link = item["link"]?.ToString() ?? "";
+                    string snippet = item["snippet"]?.ToString() ?? "";
+
+                    string log = $@"
+/---------------------------------------------------\
+Who: {query}
+Title: {title}
+Link: {link}
+Description: {snippet}
+---------------------------------------------------";
+                    Console.WriteLine(log);
+                    await SaveOption(log, personlogpath, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+
+            displaymain();
+        }
+
+        private static void ExtractImageMetadata()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter image path:");
+            string filePath = Console.ReadLine();
+
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("File does not exist.");
+                Thread.Sleep(500);
+                displaymain();
+                return;
+            }
+
+            try
+            {
+                var directories = ImageMetadataReader.ReadMetadata(filePath);
+                foreach (var directory in directories)
+                {
+                    foreach (var tag in directory.Tags)
+                    {
+                        Console.WriteLine($"{directory.Name} - {tag.Name}: {tag.Description}");
+                    }
+                }
+
+                Console.WriteLine("\nMetadata extraction complete. Press any key to exit.");
+                Console.ReadKey();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error extracting metadata: {ex.Message}");
+            }
+
+            displaymain();
+        }
+
+        private static async Task SaveOption(string log, string path, bool append = true)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("\nPress any key to go back or press 'S' to save it.");
+            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+
+            if (keyInfo.Key == ConsoleKey.S)
+            {
+                await File.WriteAllTextAsync(path, log);
+            }
+
+            Console.ResetColor();
         }
     }
     public class IpInfo
