@@ -1,0 +1,102 @@
+using System;
+
+
+
+class Program
+{
+    static void Main()
+    {
+        var termsL = new List<string>();
+        var termsP = new List<string>();
+        var L1 = new List<string>();
+        var P1 = new List<string>();
+
+        string r = "2x-2=1";
+        var (L, P) = GetTwoValues(r);
+        Console.WriteLine("leva " + L + " prava " + P);
+
+        
+        string normalized = L.Replace("-", "+-");
+
+        foreach (var t in normalized.Split('+', StringSplitOptions.RemoveEmptyEntries))
+        {
+            termsL.Add(t);
+        }
+
+        Console.WriteLine("Terms:");
+        
+
+
+        string normalized2 = P.Replace("-", "+-");
+
+        foreach (var t in normalized2.Split('+', StringSplitOptions.RemoveEmptyEntries))
+        {
+            termsP.Add(t);
+        }
+
+        
+
+        foreach (var t in termsL)
+        {
+            if (t.Contains('x') == true)
+            {
+                L1.Add(t);
+            }
+            else
+            {
+                if (t.Contains('-'))
+                {
+
+                    P1.Add(L.Replace("-", "+"));
+                }
+                else
+                {
+                    P1.Add(L.Replace("+", "-"));
+                }
+            }
+        }
+
+        Console.WriteLine("Terms:");
+        foreach (var t in P1)
+            Console.WriteLine("  " + t);
+
+
+
+        /*char[] znamenka = {'+', '-'};
+        string[] array = 
+        foreach (string s in array)
+        {
+            Console.WriteLine(s);
+        }*/
+
+    }
+    
+    
+    static (string, string) GetTwoValues(string equation)
+    {
+        string L = string.Empty;
+        string P = string.Empty;
+        bool ps = false;
+        foreach (char s in equation)
+        {
+            if (s == '=')
+            {
+                ps = true;
+            }
+            if (ps == false)
+            {
+                L += s;
+            }
+            else
+            {
+                if (s != '=')
+                {
+                    P += s;
+                }
+
+            }
+        }
+        
+        return (L, P);
+    }
+}
