@@ -1,7 +1,6 @@
 using System;
-
-
-
+using System.Collections.Generic;
+using System.Diagnostics;
 class Program
 {
     static void Main()
@@ -10,93 +9,173 @@ class Program
         var termsP = new List<string>();
         var L1 = new List<string>();
         var P1 = new List<string>();
+        var tempLeftConstants = new List<string>();
 
-        string r = "2x-2=1";
-        var (L, P) = GetTwoValues(r);
-        Console.WriteLine("leva " + L + " prava " + P);
 
-        
-        string normalized = L.Replace("-", "+-");
 
-        foreach (var t in normalized.Split('+', StringSplitOptions.RemoveEmptyEntries))
+
+        Console.WriteLine("do you want to type your own equation to solve(click any other than G) or generate(click G)");
+        ConsoleKeyInfo key = Console.ReadKey();
+        string r = string.Empty;
+        Console.Clear();
+        if (key.Key == ConsoleKey.G)
         {
-            termsL.Add(t);
+
+            Console.WriteLine("how many terms by side?");
+            int termsPerSide = Convert.ToInt32(Console.ReadLine());
+            Random rnd = new Random();
+             
+            string left = "";
+            string right = "";
+
+            for (int i = 0; i < termsPerSide; i++)
+            {
+                int coeff = rnd.Next(1, 20);   
+                int sign = rnd.Next(0, 2);     
+                left += (sign == 0 ? "+" : "-") + coeff + "x";
+
+                int constant = rnd.Next(1, 20);
+                sign = rnd.Next(0, 2);
+                left += (sign == 0 ? "+" : "-") + constant;
+            }
+
+            for (int i = 0; i < termsPerSide; i++)
+            {
+                int coeff = rnd.Next(1, 20);
+                int sign = rnd.Next(0, 2);
+                right += (sign == 0 ? "+" : "-") + coeff + "x";
+
+                int constant = rnd.Next(1, 20);
+                sign = rnd.Next(0, 2);
+                right += (sign == 0 ? "+" : "-") + constant;
+            }
+
+            r = left + "=" + right;
         }
+        else
+        {
+            r = Console.ReadLine();
+        }
+            
 
-        Console.WriteLine("Terms:");
-        
+        Stopwatch sw = Stopwatch.StartNew();
+        var (L, P) = GetTwoValues(r);
 
+        string normalized = L.Replace("-", "+-");
+        foreach (var t in normalized.Split('+', StringSplitOptions.RemoveEmptyEntries))
+            termsL.Add(t);
 
         string normalized2 = P.Replace("-", "+-");
-
         foreach (var t in normalized2.Split('+', StringSplitOptions.RemoveEmptyEntries))
-        {
             termsP.Add(t);
-        }
+
+        ProcessLeftTerms(termsL, L1, tempLeftConstants);
+        ProcessRightTerms(termsP, L1, P1);
+
+        foreach (var x in tempLeftConstants)
+            P1.Add(x);
 
         
+        string sL = string.Empty;
+        string sR = string.Empty;
+        foreach (var x in L1)
+        {
+            if (x[0] != '+' && x[0] != '-')
+                sL += "+" + x;
+            else
+                sL += x;
+        }
+        foreach (var x in P1)
+        {
+            if (x[0] != '+' && x[0] != '-')
+                sR += "+" + x;
+            else
+                sR += x;
+        }
 
+        Console.WriteLine(r);
+        Console.WriteLine($"\n{sL}={sR}");
+
+
+        List<int> xCoefficients = new List<int>();
+        foreach (var term in L1)
+        {
+            string number = term.Replace("x", "");
+            xCoefficients.Add(int.Parse(number));
+        }
+
+        List<int> constants = new List<int>();
+        foreach (var term in P1)
+        {
+            constants.Add(int.Parse(term));
+        }
+
+        int totalX = 0;
+        foreach (var val in xCoefficients)
+            totalX += val;
+
+        int totalC = 0;
+        foreach (var val in constants)
+            totalC += val;
+
+        Console.WriteLine($"\n{totalX}x={totalC}");
+        float total;
+        total = (float)totalC / totalX;
+        Console.WriteLine($"\nx={total}");
+        sw.Stop();
+        Console.WriteLine($"Time taken: {sw.ElapsedMilliseconds} ms");
+
+    }
+
+    static void ProcessLeftTerms(List<string> termsL, List<string> L1, List<string> tempLeftConstants)
+    {
         foreach (var t in termsL)
         {
-            if (t.Contains('x') == true)
-            {
+            if (t.Contains("x"))
                 L1.Add(t);
-            }
             else
             {
                 if (t.Contains('-'))
-                {
-
-                    P1.Add(L.Replace("-", "+"));
-                }
+                    tempLeftConstants.Add(t.Replace("-", "+"));
                 else
-                {
-                    P1.Add(L.Replace("+", "-"));
-                }
+                    tempLeftConstants.Add('-' + t);
             }
         }
-
-        Console.WriteLine("Terms:");
-        foreach (var t in P1)
-            Console.WriteLine("  " + t);
-
-
-
-        /*char[] znamenka = {'+', '-'};
-        string[] array = 
-        foreach (string s in array)
-        {
-            Console.WriteLine(s);
-        }*/
-
     }
-    
-    
+
+    static void ProcessRightTerms(List<string> termsP, List<string> L1, List<string> P1)
+    {
+        foreach (var t in termsP)
+        {
+            if (!t.Contains("x"))
+                P1.Add(t);
+            else
+            {
+                if (t.Contains('-'))
+                    L1.Add(t.Replace("-", "+"));
+                else
+                    L1.Add('-' + t);
+            }
+        }
+    }
+
     static (string, string) GetTwoValues(string equation)
     {
         string L = string.Empty;
         string P = string.Empty;
         bool ps = false;
+
         foreach (char s in equation)
         {
             if (s == '=')
-            {
                 ps = true;
-            }
-            if (ps == false)
-            {
-                L += s;
-            }
-            else
-            {
-                if (s != '=')
-                {
-                    P += s;
-                }
 
-            }
+            if (!ps)
+                L += s;
+            else if (s != '=')
+                P += s;
         }
-        
+
         return (L, P);
     }
 }
