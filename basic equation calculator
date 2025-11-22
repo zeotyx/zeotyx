@@ -1,181 +1,208 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-class Program
+using System.IO;
+
+class FastSolver_Streaming
 {
     static void Main()
     {
-        var termsL = new List<string>();
-        var termsP = new List<string>();
-        var L1 = new List<string>();
-        var P1 = new List<string>();
-        var tempLeftConstants = new List<string>();
+        Console.WriteLine("Press G to generate, F to read uploaded file, or type/paste an equation:");
+        var key = Console.ReadKey(intercept: true);
+        Console.WriteLine();
 
+        var parser = new StreamingParser();
+        string previewStart = "";
+        string previewEnd = "";
 
-
-
-        Console.WriteLine("do you want to type your own equation to solve(click any other than G) or generate(click G)");
-        ConsoleKeyInfo key = Console.ReadKey();
-        string r = string.Empty;
-        Console.Clear();
         if (key.Key == ConsoleKey.G)
         {
+            Console.WriteLine("How many terms per side?");
+            if (!long.TryParse(Console.ReadLine(), out long t) || t < 1) t = 1000;
 
-            Console.WriteLine("how many terms by side?");
-            int termsPerSide = Convert.ToInt32(Console.ReadLine());
-            Random rnd = new Random();
-             
-            string left = "";
-            string right = "";
+            Console.WriteLine("Choose output mode: 1=Preview, 2=Save Full Equation, 3=None");
+            var mode = Console.ReadKey(intercept: true).KeyChar;
+            Console.WriteLine();
 
-            for (int i = 0; i < termsPerSide; i++)
+            StreamWriter? file = null;
+            if (mode == '2') file = new StreamWriter("/mnt/data/generated_equation.txt");
+
+            var rnd = new Random();
+            var sw = Stopwatch.StartNew();
+
+            void genSide(long count)
             {
-                int coeff = rnd.Next(1, 20);   
-                int sign = rnd.Next(0, 2);     
-                left += (sign == 0 ? "+" : "-") + coeff + "x";
+                for (long i = 0; i < count; i++)
+                {
+                    char s1 = rnd.Next(0, 2) == 0 ? '+' : '-';
+                    int n1 = rnd.Next(1, 20);
+                    char s2 = rnd.Next(0, 2) == 0 ? '+' : '-';
+                    int n2 = rnd.Next(1, 20);
 
-                int constant = rnd.Next(1, 20);
-                sign = rnd.Next(0, 2);
-                left += (sign == 0 ? "+" : "-") + constant;
+                    WriteTerm(s1, n1, true);
+                    WriteTerm(s2, n2, false);
+                }
             }
 
-            for (int i = 0; i < termsPerSide; i++)
+            void WriteTerm(char sign, int num, bool x)
             {
-                int coeff = rnd.Next(1, 20);
-                int sign = rnd.Next(0, 2);
-                right += (sign == 0 ? "+" : "-") + coeff + "x";
-
-                int constant = rnd.Next(1, 20);
-                sign = rnd.Next(0, 2);
-                right += (sign == 0 ? "+" : "-") + constant;
+                if (mode == '1')
+                {
+                    if (previewStart.Length < 1000) previewStart += sign + num.ToString() + (x ? "x" : "");
+                    else previewEnd += sign + num.ToString() + (x ? "x" : "");
+                }
+                if (mode == '2') file!.Write(sign.ToString() + num.ToString() + (x ? "x" : ""));
+                parser.Feed(sign);
+                foreach (var ch in num.ToString()) parser.Feed(ch);
+                if (x) parser.Feed('x');
             }
 
-            r = left + "=" + right;
+            genSide(t);
+            parser.FlipSide();
+            if (mode == '2') file!.Write("=");
+            genSide(t);
+
+            parser.Finish();
+            sw.Stop();
+            file?.Close();
+            Output(parser, sw.ElapsedMilliseconds, mode, previewStart, previewEnd);
+            return;
+        }
+
+        if (key.Key == ConsoleKey.F)
+        {
+            string uploadedPath = "/mnt/data/do you want to type your own equati.txt";
+            if (!File.Exists(uploadedPath))
+            {
+                Console.WriteLine("Uploaded file not found.");
+                return;
+            }
+
+            Console.WriteLine("Mode: 1=Preview  2=None");
+            var mode = Console.ReadKey(intercept: true).KeyChar;
+            Console.WriteLine();
+
+            var sw = Stopwatch.StartNew();
+            using var sr = new StreamReader(uploadedPath);
+            char[] buf = new char[65536];
+            int r;
+            bool onRight = false;
+
+            while ((r = sr.Read(buf, 0, buf.Length)) > 0)
+            {
+                for (int i = 0; i < r; i++)
+                {
+                    char ch = buf[i];
+                    if (mode == '1')
+                    {
+                        if (previewStart.Length < 200) previewStart += ch;
+                        else previewEnd += ch;
+                    }
+                    parser.Feed(ch);
+                }
+            }
+
+            parser.Finish();
+            sw.Stop();
+            Output(parser, sw.ElapsedMilliseconds, mode, previewStart, previewEnd);
+            return;
+        }
+
+        string input = Console.ReadLine() ?? "";
+        Console.WriteLine("Mode: 1=Preview  2=None");
+        var pm = Console.ReadKey(intercept: true).KeyChar;
+        Console.WriteLine();
+
+        var sw2 = Stopwatch.StartNew();
+        foreach (var ch in input)
+        {
+            if (pm == '1')
+            {
+                if (previewStart.Length < 200) previewStart += ch;
+                else previewEnd += ch;
+            }
+            parser.Feed(ch);
+        }
+        parser.Finish();
+        sw2.Stop();
+
+        Output(parser, sw2.ElapsedMilliseconds, pm, previewStart, previewEnd);
+    }
+
+    static void Output(StreamingParser p, long ms, char mode, string start, string end)
+    {
+        Console.WriteLine();
+        if (mode == '1')
+        {
+            Console.WriteLine("Preview:");
+            Console.WriteLine(start);
+            Console.WriteLine("... (middle skipped) ...");
+            Console.WriteLine(end);
+            Console.WriteLine();
+        }
+        if (mode == '2') Console.WriteLine("Full equation saved to file.");
+
+        long totalX = p.LeftX - p.RightX;
+        long totalC = p.RightC - p.LeftC;
+
+        if (totalX == 0)
+        {
+            if (totalC == 0) Console.WriteLine("Infinite solutions.");
+            else Console.WriteLine("No solution.");
         }
         else
         {
-            r = Console.ReadLine();
+            Console.WriteLine($"{totalX}x = {totalC}");
+            Console.WriteLine($"x = {(double)totalC / totalX}");
         }
-            
-
-        Stopwatch sw = Stopwatch.StartNew();
-        var (L, P) = GetTwoValues(r);
-
-        string normalized = L.Replace("-", "+-");
-        foreach (var t in normalized.Split('+', StringSplitOptions.RemoveEmptyEntries))
-            termsL.Add(t);
-
-        string normalized2 = P.Replace("-", "+-");
-        foreach (var t in normalized2.Split('+', StringSplitOptions.RemoveEmptyEntries))
-            termsP.Add(t);
-
-        ProcessLeftTerms(termsL, L1, tempLeftConstants);
-        ProcessRightTerms(termsP, L1, P1);
-
-        foreach (var x in tempLeftConstants)
-            P1.Add(x);
-
-        
-        string sL = string.Empty;
-        string sR = string.Empty;
-        foreach (var x in L1)
-        {
-            if (x[0] != '+' && x[0] != '-')
-                sL += "+" + x;
-            else
-                sL += x;
-        }
-        foreach (var x in P1)
-        {
-            if (x[0] != '+' && x[0] != '-')
-                sR += "+" + x;
-            else
-                sR += x;
-        }
-
-        Console.WriteLine(r);
-        Console.WriteLine($"\n{sL}={sR}");
-
-
-        List<int> xCoefficients = new List<int>();
-        foreach (var term in L1)
-        {
-            string number = term.Replace("x", "");
-            xCoefficients.Add(int.Parse(number));
-        }
-
-        List<int> constants = new List<int>();
-        foreach (var term in P1)
-        {
-            constants.Add(int.Parse(term));
-        }
-
-        int totalX = 0;
-        foreach (var val in xCoefficients)
-            totalX += val;
-
-        int totalC = 0;
-        foreach (var val in constants)
-            totalC += val;
-
-        Console.WriteLine($"\n{totalX}x={totalC}");
-        float total;
-        total = (float)totalC / totalX;
-        Console.WriteLine($"\nx={total}");
-        sw.Stop();
-        Console.WriteLine($"Time taken: {sw.ElapsedMilliseconds} ms");
-
+        Console.WriteLine($"Time: {ms} ms");
     }
+}
 
-    static void ProcessLeftTerms(List<string> termsL, List<string> L1, List<string> tempLeftConstants)
+class StreamingParser
+{
+    public long LeftX { get; private set; }
+    public long LeftC { get; private set; }
+    public long RightX { get; private set; }
+    public long RightC { get; private set; }
+
+    bool onRight;
+    int sign = 1;
+    long num = 0;
+    bool hasDigits;
+
+    public void Feed(char ch)
     {
-        foreach (var t in termsL)
+        if (ch == '+') { Flush(); sign = 1; return; }
+        if (ch == '-') { Flush(); sign = -1; return; }
+        if (ch == '=') { Flush(); onRight = true; sign = 1; return; }
+        if ((uint)(ch - '0') <= 9) { hasDigits = true; num = num * 10 + (ch - '0'); return; }
+        if (ch == 'x')
         {
-            if (t.Contains("x"))
-                L1.Add(t);
-            else
-            {
-                if (t.Contains('-'))
-                    tempLeftConstants.Add(t.Replace("-", "+"));
-                else
-                    tempLeftConstants.Add('-' + t);
-            }
+            long v = hasDigits ? num : 1;
+            if (!onRight) LeftX += sign * v; else RightX += sign * v;
+            num = 0;
+            hasDigits = false;
+            return;
         }
     }
 
-    static void ProcessRightTerms(List<string> termsP, List<string> L1, List<string> P1)
+    void Flush()
     {
-        foreach (var t in termsP)
+        if (hasDigits)
         {
-            if (!t.Contains("x"))
-                P1.Add(t);
-            else
-            {
-                if (t.Contains('-'))
-                    L1.Add(t.Replace("-", "+"));
-                else
-                    L1.Add('-' + t);
-            }
+            if (!onRight) LeftC += sign * num; else RightC += sign * num;
+            num = 0;
+            hasDigits = false;
         }
     }
-
-    static (string, string) GetTwoValues(string equation)
+    public void FlipSide()
     {
-        string L = string.Empty;
-        string P = string.Empty;
-        bool ps = false;
-
-        foreach (char s in equation)
-        {
-            if (s == '=')
-                ps = true;
-
-            if (!ps)
-                L += s;
-            else if (s != '=')
-                P += s;
-        }
-
-        return (L, P);
+        Flush();
+        onRight = true;
+        sign = 1;
+        num = 0;
+        hasDigits = false;
     }
+
+    public void Finish() => Flush();
 }
