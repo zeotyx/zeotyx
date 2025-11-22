@@ -1,0 +1,64 @@
+using System;
+using System.Threading;
+
+class Program
+{
+    static void Main()
+    {
+        int width = 80;
+        int height = 40;
+        double t = 0;
+        char[] shades = { ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@' };
+        Console.CursorVisible = false;
+
+        while (true)
+        {
+            char[,] buffer = new char[height, width];
+
+            
+            for (int i = 0; i < height; i++)
+                for (int j = 0; j < width; j++)
+                    buffer[i, j] = ' ';
+
+           
+            for (double u = 0; u < Math.PI * 2; u += 0.08f)
+            {
+                float sinU = (float)Math.Sin(u);
+                float cosU = (float)Math.Cos(u);
+                float sinU3 = sinU * sinU * sinU;
+
+                for (float v = -1; v <= 1; v += 0.08f)
+                {
+                    float x = 16 * sinU3;
+                    float y = 13 * cosU - 5 * (float)Math.Cos(2 * u) - 2 * (float)Math.Cos(3 * u) - (float)Math.Cos(4 * u);
+                    float z = v * 5;
+
+                    float angle = (float)t;
+                    float x3d = x * (float)Math.Cos(angle) + z * (float)Math.Sin(angle);
+                    float z3d = -x * (float)Math.Sin(angle) + z * (float)Math.Cos(angle);
+                    float y3d = y;
+
+                    int px = (int)((x3d / 20 + 1) * width / 2);
+                    int py = (int)((-y3d / 20 + 1) * height / 2);
+
+                    if (px >= 0 && px < width && py >= 0 && py < height)
+                    {
+                        int shadeIndex = (int)((z3d + 5) / 10 * (shades.Length - 1));
+                        buffer[py, px] = shades[Math.Clamp(shadeIndex, 0, shades.Length - 1)];
+                    }
+                }
+            }
+
+            Console.SetCursorPosition(0, 0);
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < width; j++)
+                    Console.Write(buffer[i, j]);
+                Console.WriteLine();
+            }
+
+            t += 0.30;
+            Thread.Sleep(10);
+        }
+    }
+}
