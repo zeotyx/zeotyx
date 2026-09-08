@@ -1,0 +1,66 @@
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using OpenCvSharp;
+using OpenCvSharp.WpfExtensions;
+
+namespace webcamtest
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : System.Windows.Window
+    {
+        private VideoCapture capture;
+        private bool isRunnning = false;
+        public MainWindow()
+        {
+            InitializeComponent();
+            CamStart();
+        }
+        private void CamStart()
+        {
+            capture = new VideoCapture(0);
+            capture.Open(0);
+            if (!capture.IsOpened())
+            {
+                MessageBox.Show("cant open");
+                
+            }
+            isRunnning=true;
+
+            Task.Run(() =>
+            {
+                Mat frame = new Mat();
+
+                while (isRunnning)
+                {
+                    
+                    capture.Read(frame);
+                    if (!frame.Empty())
+                    {
+                        var image = frame.ToBitmapSource();
+                        image.Freeze();
+                        Dispatcher.Invoke(() => ImageCam.Source = image);
+                    }
+                    
+                }
+                frame.Dispose();
+            });
+            
+        }
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            isRunnning = false;
+            capture?.Release();
+            base.OnClosing(e);
+        }
+    }
+}
